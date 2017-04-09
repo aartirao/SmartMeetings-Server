@@ -1,6 +1,8 @@
 from bottle import route, run, request
 import bottle
 import json
+import time
+import datetime
 
 import pymysql
 conn = None
@@ -9,6 +11,7 @@ try:
     conn = pymysql.connect(db='smartmeetingdb', user='group30', host='smartmeeting.cyrypi4sn74l.us-west-2.rds.amazonaws.com', passwd='12345678')
 except:
     print "I am unable to connect to the database"
+
 
 
 @route('/home')
@@ -38,6 +41,18 @@ def get_users():
         print data
         return data
 
+@route('/location', method='POST')
+def save_location():
+    with conn.cursor() as cur:
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        username = request.forms.get('username')
+        latitude = request.forms.get('latitude')
+        longitude = request.forms.get('longitude')
+        print username, latitude, longitude
+        insert = "INSERT INTO `location_history` (`username`, `latitude`, `longitude`, `timestamp`) values (%s, %s, %s, %s)"
+        cur.execute(insert, (username, latitude, longitude, timestamp))
+        conn.commit()
 
 
 application = bottle.default_app()
