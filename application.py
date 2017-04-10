@@ -54,6 +54,18 @@ def save_location():
         cur.execute(insert, (username, latitude, longitude, timestamp))
         conn.commit()
 
+@route("/note", method='POST')
+def save_note():
+    with conn.cursor() as cur:
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        username = request.forms.get('username')
+        note_title = request.forms.get('note_title')
+        note_text = request.forms.get('note_text')
+        insert = "INSERT INTO `notes` (`username`, `timestamp`, `note_title`, `note_text`) values (%s, %s, %s, %s)"
+        cur.execute(insert, (username, timestamp, note_title, note_text))
+        conn.commit()
+
 @route('/poll', method='POST')
 def create_poll():
   with conn.cursor() as cur:
@@ -67,12 +79,6 @@ def create_poll():
     cur.execute(insert, (username, question_text, option_1, option_2, option_3, option_4))
     conn.commit()
 
-    
-
-
 application = bottle.default_app()
 if __name__ == "__main__":
     run(host='0.0.0.0', port=8080, debug=True)
-
-
-
