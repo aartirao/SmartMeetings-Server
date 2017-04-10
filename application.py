@@ -54,6 +54,21 @@ def save_location():
         cur.execute(insert, (username, latitude, longitude, timestamp))
         conn.commit()
 
+@route('/poll', method='POST')
+def create_poll():
+  with conn.cursor() as cur:
+    username = request.forms.get('username')
+    question_text = request.forms.get('question_text')
+    option_1 = request.forms.get('option_1')
+    option_2 = request.forms.get('option_2')
+    option_3 = request.forms.get('option_3')
+    option_4 = request.forms.get('option_4')
+    insert = "INSERT INTO `poll_questions` (`username`, `question_text`, `option_1`, `option_2`, `option_3`, `option_4`) values (%s, %s, %s, %s)"
+    cur.execute(insert, (username, question_text, option_1, option_2, option_3, option_4))
+    conn.commit()
+
+    
+
 
 application = bottle.default_app()
 if __name__ == "__main__":
