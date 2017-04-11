@@ -59,12 +59,41 @@ def save_note():
     with conn.cursor() as cur:
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        id_row = request.forms.get('id')
         username = request.forms.get('username')
         note_title = request.forms.get('note_title')
         note_text = request.forms.get('note_text')
-        insert = "INSERT INTO `notes` (`username`, `timestamp`, `note_title`, `note_text`) values (%s, %s, %s, %s)"
-        cur.execute(insert, (username, timestamp, note_title, note_text))
+        if id_row == None:
+            insert = "INSERT INTO `notes` (`username`, `timestamp`, `note_title`, `note_text`) values (%s, %s, %s, %s)"
+            cur.execute(insert, (username, timestamp, note_title, note_text))
+        else:
+            update = "UPDATE `notes` SET `note_text` = %s where id = %s"
+            cur.execute(update, (note_text, id_row))
         conn.commit()
+
+@route("/note", method='GET')
+def get_note():
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        get_all = "SELECT id, username, note_title, note_text from `notes` where `username` = %s"
+        username = request.query.get('username')
+        cur.execute(get_all, (username)) 
+        data = cur.fetchall()        
+        return json.dumps(data)
+        
+
+@route('/auth', method='GET')
+def auth():
+    with conn.cursor() as cur:
+        get = "SELECT username FROM `user` where `username` = %s and `password` = %s"
+        username = request.query.get('username')
+        password = request.query.get('password')
+        cur.execute(get, (username, password))
+        data = cur.fetchall()
+        res = False
+        if (len(data) > 0):
+            res = True
+        return json.dumps(res)
+
 
 @route('/poll', method='POST')
 def create_poll():
