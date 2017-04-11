@@ -78,7 +78,7 @@ def get_note():
         username = request.query.get('username')
         cur.execute(get_all, (username)) 
         data = cur.fetchall()        
-        return json.dumps(data)
+        return json.dumps({"items":data})
         
 
 @route('/auth', method='GET')
