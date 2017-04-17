@@ -32,18 +32,16 @@ def create_user():
 
 @route('/users', method='GET')
 def get_users():
-    with conn.cursor() as cur:
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
         get_all = "SELECT * from `user`"
         cur.execute(get_all)
         data = cur.fetchall()
-        data = json.dumps(data)
         conn.commit()
-        print data
-        return data
+        return json.dumps({"items":data})
 
 @route('/meetingrooms', method='GET')
 def get_rooms():
-    with conn.cursor() as cur:
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
         date1 = request.query.get('from_date')
         date2 = request.query.get('to_date')
         print date1
@@ -61,6 +59,15 @@ def get_rooms():
         conn.commit()
         return json.dumps({"items":result})
 
+@route('/meeting', method='POST')
+def create_meeting():
+    with conn.cursor() as cur:
+        name = request.forms.get('name')
+        creator = request.forms.get('creator')
+        location_id = request.forms.get('location')
+        meeting = "INSERT INTO `meeting` (`name`, `creator`, `location_id`) values (%s, %s, %s)"
+        cur.execute(meeting, (name, creator, meeting))
+        conn.commit()
 
 @route('/location', method='POST')
 def save_location():
@@ -77,7 +84,7 @@ def save_location():
 
 @route("/note", method='POST')
 def save_note():
-    with conn.cursor() as cur:
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
         username = request.forms.get('username')
