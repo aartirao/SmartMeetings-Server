@@ -64,9 +64,15 @@ def create_meeting():
     with conn.cursor() as cur:
         name = request.forms.get('name')
         creator = request.forms.get('creator')
-        location_id = request.forms.get('location')
+        location_id = request.forms.get('location_id')
+        from_date = request.forms.get('from_date')
+        to_date = request.forms.get('to_date')
+        print name, creator, location_id, from_date, to_date
         meeting = "INSERT INTO `meeting` (`name`, `creator`, `location_id`) values (%s, %s, %s)"
-        cur.execute(meeting, (name, creator, meeting))
+        cur.execute(meeting, (name, creator, location_id))
+        meeting_id = cur.lastrowid
+        book = "INSERT INTO `room_booking` (`meeting_id`, `from_date`, `to_date`) values (%s, %s, %s)"
+        cur.execute(book, (meeting_id, from_date, to_date))
         conn.commit()
 
 @route('/location', method='POST')
