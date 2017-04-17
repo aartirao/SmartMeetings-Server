@@ -41,6 +41,27 @@ def get_users():
         print data
         return data
 
+@route('/meetingrooms', method='GET')
+def get_rooms():
+    with conn.cursor() as cur:
+        date1 = request.query.get('from_date')
+        date2 = request.query.get('to_date')
+        print date1
+        print date2
+        rooms = '''SELECT * from `meeting_locations` where `id` not in \
+        ((select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where `from_date` <= %s and `to_date` >= %s)) OR \
+         (select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where `from_date` <= %s and  `to_date` <= %s)) \
+         OR \
+         (select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where `from_date` >= %s and `to_date` <= %s)) \
+         OR \
+         (select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where `from_date` >= %s and `to_date` >= %s)))'''
+        print "ROOMS:", rooms % (date1, date2, date1, date2, date1, date2, date1, date2)
+        cur.execute(rooms, (date1, date2, date1, date2, date1, date2, date1, date2))
+        result = cur.fetchall()
+        result = json.dumps(result)
+        conn.commit()
+        print result
+
 @route('/location', method='POST')
 def save_location():
     with conn.cursor() as cur:
@@ -73,10 +94,10 @@ def get_note():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         get_all = "SELECT id, username, note_title, note_text, email from `notes` where `username` = %s"
         username = request.query.get('username')
-        cur.execute(get_all, (username)) 
-        data = cur.fetchall()        
+        cur.execute(get_all, (username))
+        data = cur.fetchall()
         return json.dumps({"items":data})
-        
+
 
 @route('/auth', method='GET')
 def auth():
