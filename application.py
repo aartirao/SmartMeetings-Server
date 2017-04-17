@@ -89,7 +89,7 @@ def auth():
         res = False
         if (len(data) > 0):
             res = True
-        return json.dumps({"items": [{"status": res}] })
+        return json.dumps({"items": [{"username": username, "password": password, "status": res}] })
 
 
 @route('/poll', method='POST')
