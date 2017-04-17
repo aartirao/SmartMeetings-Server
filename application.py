@@ -74,7 +74,7 @@ def get_note():
         get_all = "SELECT id, username, note_title, note_text, email from `notes` where `username` = %s"
         username = request.query.get('username')
         cur.execute(get_all, (username)) 
-        data = cur.fetchall()        
+        data = cur.fetchall()
         return json.dumps({"items":data})
         
 
@@ -89,7 +89,7 @@ def auth():
         res = False
         if (len(data) > 0):
             res = True
-        return json.dumps(res)
+        return json.dumps({"items": [{"status": res}] })
 
 
 @route('/poll', method='POST')
