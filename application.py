@@ -58,9 +58,9 @@ def get_rooms():
         print "ROOMS:", rooms % (date1, date2, date1, date2, date1, date2, date1, date2)
         cur.execute(rooms, (date1, date2, date1, date2, date1, date2, date1, date2))
         result = cur.fetchall()
-        result = json.dumps(result)
         conn.commit()
-        print result
+        return json.dumps({"items":result})
+
 
 @route('/location', method='POST')
 def save_location():
@@ -110,7 +110,7 @@ def auth():
         res = False
         if (len(data) > 0):
             res = True
-        return json.dumps(res)
+        return json.dumps({"items": [{"username": username, "password": password, "status": res}] })
 
 
 @route('/poll', method='POST')
