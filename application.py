@@ -75,6 +75,17 @@ def create_meeting():
         cur.execute(book, (meeting_id, from_date, to_date))
         conn.commit()
 
+@route('/participants', method='POST')
+def add_participants():
+    with conn.cursor() as cur:
+        meeting_id = request.forms.get('meeting_id')
+        participants = request.forms.get('participants')
+        insert = "INSERT INTO `meeting_participant` (`meeting_id`, `user_name`) values (%s, %s)"
+        participants = participants[1:-1].split(', ')
+        for p in participants:
+            cur.execute(insert, (meeting_id, p))
+        conn.commit()
+
 @route('/location', method='POST')
 def save_location():
     with conn.cursor() as cur:
