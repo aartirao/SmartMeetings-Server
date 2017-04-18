@@ -42,17 +42,11 @@ def get_users():
 @route('/meetingrooms', method='GET')
 def get_rooms():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
-        date1 = request.query.get('from_date')
-        date2 = request.query.get('to_date')
+        date1 = '\''+request.query.get('from_date')+'\''
+        date2 = '\''+request.query.get('to_date')+'\''
         print date1
         print date2
-        rooms = '''SELECT * from `meeting_locations` where `id` not in \
-        ((select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where `from_date` <= %s and `to_date` >= %s)) OR \
-         (select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where `from_date` <= %s and  `to_date` <= %s)) \
-         OR \
-         (select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where `from_date` >= %s and `to_date` <= %s)) \
-         OR \
-         (select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where `from_date` >= %s and `to_date` >= %s)))'''
+        rooms = '''SELECT * from `meeting_locations` where `id` not in (select `location_id` from `meeting` where `id` = (select `meeting_id` from `room_booking` where (`from_date` <= %s and `to_date` >= %s) OR (`from_date` <= %s and  (`to_date` <= %s and `to_date` >= `from_date`)) OR (`from_date` >= %s and `to_date` <= %s) OR ((`from_date` >= %s and `from_date` <= `to_date`) and `to_date` >= %s)))'''
         print "ROOMS:", rooms % (date1, date2, date1, date2, date1, date2, date1, date2)
         cur.execute(rooms, (date1, date2, date1, date2, date1, date2, date1, date2))
         result = cur.fetchall()
