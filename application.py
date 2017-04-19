@@ -148,7 +148,7 @@ def all_polls():
 def get_poll():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         poll_id = request.query.get('poll_id')
-        poll = "SELECT `id`, `question`, `count_option1`, `count_option2`, `count_option3`, `count_option4` from `polls` where `id` = %s"
+        poll = "SELECT * from `polls` where `id` = %s"
         cur.execute(poll, (poll_id))
         data = cur.fetchall()
         conn.commit()
@@ -187,9 +187,10 @@ def create_poll():
         poll = "INSERT INTO `polls` (`username`, `meeting_id`, `question`, `option1`, `option2`, `option3`, `option4`, `status`, `count_option1`, `count_option2`, `count_option3`, `count_option4`) values (%s, %s, %s, %s, %s, %s, %s, %s, 0, 0, 0, 0)"
         cur.execute(poll, (username, meeting_id, question, option1, option2, option3, option4, status))
         conn.commit()
-        notify_participants(meeting_id, question)
+        poll_id = cur.lastrowid
+        notify_participants(meeting_id, question, poll_id)
 
-def notify_participants(meeting_id, question):
+def notify_participants(meeting_id, question, poll_id):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         token_list = []
         query = "SELECT `token_id` from `tokens` where `username` in (select `user_name` from `meeting_participant` where `meeting_id` = %s)"
@@ -202,7 +203,7 @@ def notify_participants(meeting_id, question):
           'fcm': {
             'registration_ids': token_list,
             'notification': {
-              'title': 'New poll!',
+              'title': 'New poll!,' + poll_id,
               'body': question
             }
           },
