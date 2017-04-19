@@ -169,8 +169,8 @@ def submit_poll():
         poll_id = request.forms.get('poll_id')
         username = request.forms.get('username')
         option = 'count_option'+request.forms.get('option')
-        insert = "UPDATE `polls` set %s = %s + 1 where `id` = %s"
-        cur.execute(insert, (option, option, poll_id))
+        insert = "UPDATE `polls` set "+option+" = "+option+" + 1 where `id` = %s"
+        cur.execute(insert, (poll_id))
         conn.commit()
 
 @route("/polls", method='POST')
