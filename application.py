@@ -4,6 +4,10 @@ import json
 import time
 import datetime
 
+import pusher
+pusher_client = pusher.Pusher("329265", "bdf3e36a58647e366f38", "a631bb96bd8a4b3c0e69")
+
+
 import pymysql
 conn = None
 
@@ -57,7 +61,7 @@ def get_rooms():
 def get_meetings():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         username = request.query.get('username')
-        meetings = "SELECT `id`, `name` from meeting where `id` in (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
+        meetings = "SELECT `id`, `name`, `creator` from meeting where `id` in (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
         cur.execute(meetings, (username))
         result = cur.fetchall()
         conn.commit()
@@ -183,6 +187,28 @@ def create_poll():
         poll = "INSERT INTO `polls` (`username`, `meeting_id`, `question`, `option1`, `option2`, `option3`, `option4`, `status`, `count_option1`, `count_option2`, `count_option3`, `count_option4`) values (%s, %s, %s, %s, %s, %s, %s, %s, 0, 0, 0, 0)"
         cur.execute(poll, (username, meeting_id, question, option1, option2, option3, option4, status))
         conn.commit()
+        notify_participants(meeting_id, question)
+
+def notify_participants(meeting_id, question):
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        token_list = []
+        query = "SELECT `token_id` from `tokens` where `username` in (select `user_name` from `meeting_participant` where `meeting_id` = %s)"
+        cur.execute(query, (meeting_id))
+        tokens = cur.fetchall()
+        for t in tokens:
+            token_list.append(t['token_id'])
+        print token_list
+        pusher_client.notify(['polls'], {
+          'fcm': {
+            'registration_ids': token_list,
+            'notification': {
+              'title': 'New poll!',
+              'body': question
+            }
+          },
+          'webhook_url': 'http://requestb.in/1f7u53z1',
+          'webhook_level': 'DEBUG'
+        })
 
 @route("/note", method='GET')
 def get_note():
