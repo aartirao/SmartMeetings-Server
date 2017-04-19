@@ -188,9 +188,9 @@ def create_poll():
         cur.execute(poll, (username, meeting_id, question, option1, option2, option3, option4, status))
         conn.commit()
         poll_id = cur.lastrowid
-        notify_participants(meeting_id, question, poll_id)
+        notify_participants(meeting_id, question, poll_id, (option1, option2, option3, option4))
 
-def notify_participants(meeting_id, question, poll_id):
+def notify_participants(meeting_id, question, poll_id, options):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         token_list = []
         query = "SELECT `token_id` from `tokens` where `username` in (select `user_name` from `meeting_participant` where `meeting_id` = %s)"
@@ -202,9 +202,18 @@ def notify_participants(meeting_id, question, poll_id):
         pusher_client.notify(['polls'], {
           'fcm': {
             'registration_ids': token_list,
+            'data': {
+                "poll_id": poll_id,
+                "question": question,
+                "option1": options[0],
+                "option2": options[1],
+                "option3": options[2],
+                "option4": options[3]
+            },
             'notification': {
-              'title': 'New poll!,' + poll_id,
-              'body': question
+              'title': 'New poll!',
+              'body': question,
+              'click_action': "mc.asu.edu.smartmeetings.TARGET_NOTIFICATION"
             }
           },
           'webhook_url': 'http://requestb.in/1f7u53z1',
