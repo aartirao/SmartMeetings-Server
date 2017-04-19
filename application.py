@@ -53,6 +53,27 @@ def get_rooms():
         conn.commit()
         return json.dumps({"items":result})
 
+@route('/meetings', method='GET')
+def get_meetings():
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        username = request.query.get('username')
+        meetings = "SELECT `id`, `name` from meeting where `id` in (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
+        cur.execute(meetings, (username))
+        result = cur.fetchall()
+        conn.commit()
+        return json.dumps({"items":result})
+
+@route('/meeting', method='GET')
+def get_meetings():
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        meeting_id = request.query.get('meeting_id')
+        meetings = "SELECT `creator`, `name` from meeting where `id` = %s"
+        print (meetings % (meeting_id))
+        cur.execute(meetings, (meeting_id))
+        result = cur.fetchall()
+        conn.commit()
+        return json.dumps({"items":result})
+
 @route('/meeting', method='POST')
 def create_meeting():
     with conn.cursor() as cur:
@@ -67,6 +88,8 @@ def create_meeting():
         meeting_id = cur.lastrowid
         book = "INSERT INTO `room_booking` (`meeting_id`, `from_date`, `to_date`) values (%s, %s, %s)"
         cur.execute(book, (meeting_id, from_date, to_date))
+        participant = "INSERT INTO `meeting_participant` values(%s, %s)"
+        cur.execute(participant, (meeting_id, creator))
         conn.commit()
 
 @route('/participants', method='POST')
@@ -107,6 +130,60 @@ def save_note():
 
         conn.commit()
 
+@route("/allpolls", method='GET')
+def all_polls():
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        username = request.query.get('username')
+        poll = "SELECT `id`, `question` from `polls` where `status` = %s and `meeting_id` in (select `meeting_id` from `meeting_participant` where `username` = %s)"
+        cur.execute(poll, (True, username))
+        data = cur.fetchall()
+        conn.commit()
+        return json.dumps({"items":data})
+
+@route("/getpoll", method='GET')
+def get_poll():
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        poll_id = request.query.get('poll_id')
+        poll = "SELECT `id`, `question`, `count_option1`, `count_option2`, `count_option3`, `count_option4` from `polls` where `id` = %s"
+        cur.execute(poll, (poll_id))
+        data = cur.fetchall()
+        conn.commit()
+        return json.dumps({"items":data})
+
+@route("/token", method='POST')
+def create_token():
+    with conn.cursor() as cur:
+        token_id = request.forms.get('token_id')
+        username = request.forms.get('username')
+        insert = "INSERT INTO `tokens` (`token_id`, `username`) values(%s, %s)"
+        cur.execute(insert, (token_id, username))
+        conn.commit()
+
+@route("/submitpoll", method='POST')
+def submit_poll():
+    with conn.cursor() as cur:
+        poll_id = request.forms.get('poll_id')
+        username = request.forms.get('username')
+        option = 'count_option'+request.forms.get('option')
+        insert = "UPDATE `polls` set %s = %s + 1 where `id` = %s"
+        cur.execute(insert, (option, option, poll_id))
+        conn.commit()
+
+@route("/polls", method='POST')
+def create_poll():
+    with conn.cursor() as cur:
+        meeting_id = request.forms.get('meeting_id')
+        username = request.forms.get('username')
+        question = request.forms.get('question')
+        option1 = request.forms.get('option1')
+        option2 = request.forms.get('option2')
+        option3 = request.forms.get('option3')
+        option4 = request.forms.get('option4')
+        status = True
+        poll = "INSERT INTO `polls` (`username`, `meeting_id`, `question`, `option1`, `option2`, `option3`, `option4`, `status`, `count_option1`, `count_option2`, `count_option3`, `count_option4`) values (%s, %s, %s, %s, %s, %s, %s, %s, 0, 0, 0, 0)"
+        cur.execute(poll, (username, meeting_id, question, option1, option2, option3, option4, status))
+        conn.commit()
+
 @route("/note", method='GET')
 def get_note():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
@@ -129,20 +206,6 @@ def auth():
         if (len(data) > 0):
             res = True
         return json.dumps({"items": [{"username": username, "password": password, "status": res}] })
-
-
-@route('/poll', method='POST')
-def create_poll():
-  with conn.cursor() as cur:
-    username = request.forms.get('username')
-    question_text = request.forms.get('question_text')
-    option_1 = request.forms.get('option_1')
-    option_2 = request.forms.get('option_2')
-    option_3 = request.forms.get('option_3')
-    option_4 = request.forms.get('option_4')
-    insert = "INSERT INTO `poll_questions` (`username`, `question_text`, `option_1`, `option_2`, `option_3`, `option_4`) values (%s, %s, %s, %s)"
-    cur.execute(insert, (username, question_text, option_1, option_2, option_3, option_4))
-    conn.commit()
 
 application = bottle.default_app()
 if __name__ == "__main__":
