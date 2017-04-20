@@ -138,7 +138,7 @@ def save_note():
 def all_polls():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         username = request.query.get('username')
-        poll = "SELECT `id`, `question` from `polls` where `status` = %s and `meeting_id` in (select `meeting_id` from `meeting_participant` where `username` = %s)"
+        poll = "SELECT * from `polls` where `status` = %s and `meeting_id` in (select `meeting_id` from `meeting_participant` where `username` = %s)"
         cur.execute(poll, (True, username))
         data = cur.fetchall()
         conn.commit()
