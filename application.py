@@ -1,8 +1,11 @@
 from bottle import route, run, request
+from math import radians, cos, sin, asin, sqrt
+from collections import Counter
 import bottle
 import json
 import time
 import datetime
+import operator
 
 import pusher
 pusher_client = pusher.Pusher("329265", "bdf3e36a58647e366f38", "a631bb96bd8a4b3c0e69")
@@ -159,8 +162,8 @@ def create_token():
     with conn.cursor() as cur:
         token_id = request.forms.get('token_id')
         username = request.forms.get('username')
-        insert = "INSERT INTO `tokens` (`token_id`, `username`) values(%s, %s)"
-        cur.execute(insert, (token_id, username))
+        insert = "INSERT INTO `tokens` (`token_id`, `username`) values(%s, %s) WHERE NOT EXISTS (SELECT `username` from `tokens` where `username` = %s) LIMIT 1"
+        cur.execute(insert, (token_id, username, username))
         conn.commit()
 
 @route("/submitpoll", method='POST')
@@ -189,6 +192,90 @@ def create_poll():
         conn.commit()
         poll_id = cur.lastrowid
         notify_participants(meeting_id, question, poll_id, (option1, option2, option3, option4))
+
+@route("/quickquestions", method='POST')
+def quick_question():
+    with conn.cursor() as cur:
+        meeting_id = request.forms.get('meeting_id')
+        username = request.forms.get('username')
+        question = request.forms.get('question')
+        query = "INSERT INTO `quick_question` (`question`, `meeting_id`, `creator`) values (%s, %s, %s)"
+        cur.execute(query, (question, meeting_id, username))
+        conn.commit()
+
+@route("/submitquickquestion", method='POST')
+def submit_answers():
+    with conn.cursor() as cur:
+        question_id = request.forms.get('question_id')
+        answer = request.forms.get('answer')
+        query = "INSERT INTO `question_answer` (`q_id`, `answer`) values (%s, %s)"
+        cur.execute(query, (question_id, answer))
+        conn.commit()
+
+@route("/allquickquestions", method='GET')
+def list_questions():
+    data = []
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        meeting_id = request.query.get('meeting_id')
+        query = "SELECT `id`, `question` from `quick_question` where `meeting_id` = %s"
+        cur.execute(query, (meeting_id))
+        result = cur.fetchall()
+        for r in result:
+            q_id = r['id']
+            answer_query = "SELECT `answer` from `question_answer` where `q_id` = %s"
+            cur.execute(answer_query, (q_id))
+            answers = cur.fetchall()
+            final_answers = (', ').join(answer['answer'] for answer in answers)
+            data.append({'question_id':q_id, 'question':r['question'],'answers':final_answers})
+        return json.dumps({"items":data})
+
+def median_location(participants):
+    median_locations = {}
+    latsum = 0
+    longsum = 0
+    total = len(participants)
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        query = "SELECT `latitude`, `longitude` from `temp_locations` where `username` = %s"
+        for p in participants:
+            cur.execute(query, (p))
+            latlong = cur.fetchall()
+            locations = []
+            for ll in latlong:
+                locations.append(', '.join([str(ll["latitude"]), str(ll["longitude"])]))
+            locations_to_count = (location for location in locations)
+            c = Counter(locations_to_count)
+            median_locations[p] = c.most_common(1)[0][0]
+        for m in median_locations.values():
+            latsum = latsum + float(m.split(", ")[0])
+            longsum = longsum + float(m.split(", ")[1])
+        print find_optimal_location(latsum/total, longsum/total)
+
+
+def find_optimal_location(latitude, longitude):
+    print latitude, longitude
+    query = "SELECT `name`, `latitude`, `longitude` from `meeting_locations`"
+    locations = {}
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        cur.execute(query)
+        location_list = cur.fetchall()
+        for location in location_list:
+            lat = float(location["latitude"])
+            longit = float(location["longitude"])
+            locations[location["name"]] = haversine(longit, lat, longitude, latitude)
+        print locations
+        sorted_locations = sorted(locations.items(), key=operator.itemgetter(1))
+        return list(s[0] for s in sorted_locations)
+
+
+def haversine(lon1, lat1, lon2, lat2):
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    return c
 
 def notify_participants(meeting_id, question, poll_id, options):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
