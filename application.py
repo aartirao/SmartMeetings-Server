@@ -227,7 +227,7 @@ def list_questions():
             answer_query = "SELECT `answer` from `question_answer` where `q_id` = %s"
             cur.execute(answer_query, (q_id))
             answers = cur.fetchall()
-            final_answers = (', ').join(answer['answer'] for answer in answers)
+            final_answers = (',').join(answer['answer'] for answer in answers)
             data.append({'question_id':q_id, 'question':r['question'],'answers':final_answers})
         return json.dumps({"items":data})
 
@@ -279,7 +279,7 @@ def find_optimal_location(latitude, longitude):
         for location in location_list:
             lat = float(location["latitude"])
             longit = float(location["longitude"])
-            locations[location["name"]] = haversine(longit, lat, longitude, latitude)
+            locations[(',').join([str(location["id"]),location["name"]])] = haversine(longit, lat, longitude, latitude)
         print locations
         sorted_locations = sorted(locations.items(), key=operator.itemgetter(1))
         return list(s[0] for s in sorted_locations)
