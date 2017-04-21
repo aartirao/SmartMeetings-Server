@@ -141,7 +141,7 @@ def save_note():
 def all_polls():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         username = request.query.get('username')
-        poll = "SELECT * from `polls` where `status` = %s and `meeting_id` in (select `meeting_id` from `meeting_participant` where `username` = %s)"
+        poll = "SELECT * from `polls` where `status` = %s and `meeting_id` in (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
         cur.execute(poll, (True, username))
         data = cur.fetchall()
         conn.commit()
@@ -218,9 +218,9 @@ def submit_answers():
 def list_questions():
     data = []
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
-        meeting_id = request.query.get('meeting_id')
-        query = "SELECT `id`, `question` from `quick_question` where `meeting_id` = %s"
-        cur.execute(query, (meeting_id))
+        username = request.query.get('username')
+        query = "SELECT `id`, `question` from `quick_question` where `meeting_id` in (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
+        cur.execute(query, (username))
         result = cur.fetchall()
         for r in result:
             q_id = r['id']
