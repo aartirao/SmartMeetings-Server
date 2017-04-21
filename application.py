@@ -162,7 +162,7 @@ def create_token():
     with conn.cursor() as cur:
         token_id = request.forms.get('token_id')
         username = request.forms.get('username')
-        insert = "INSERT INTO `tokens` (`token_id`, `username`) values(%s, %s) WHERE NOT EXISTS (SELECT `username` from `tokens` where `username` = %s) LIMIT 1"
+        insert = "INSERT IGNORE INTO `tokens` (`token_id`, `username`) values(%s, %s)"
         cur.execute(insert, (token_id, username, username))
         conn.commit()
 
@@ -271,7 +271,7 @@ def median_location():
 
 def find_optimal_location(latitude, longitude):
     print latitude, longitude
-    query = "SELECT `name`, `latitude`, `longitude` from `meeting_locations`"
+    query = "SELECT `id`, `name`, `latitude`, `longitude` from `meeting_locations`"
     locations = {}
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         cur.execute(query)
