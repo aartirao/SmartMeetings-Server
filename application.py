@@ -202,6 +202,8 @@ def quick_question():
         query = "INSERT INTO `quick_question` (`question`, `meeting_id`, `creator`) values (%s, %s, %s)"
         cur.execute(query, (question, meeting_id, username))
         conn.commit()
+        question_id = cur.lastrowid
+        notify_questions(meeting_id, question, question_id)
 
 @route("/submitquickquestion", method='POST')
 def submit_answers():
@@ -317,6 +319,31 @@ def notify_participants(meeting_id, question, poll_id, options):
               'title': 'New poll!',
               'body': question,
               'click_action': "mc.asu.edu.smartmeetings.TARGET_NOTIFICATION"
+            }
+          },
+          'webhook_url': 'http://requestb.in/1f7u53z1',
+          'webhook_level': 'DEBUG'
+        })
+
+def notify_questions(meeting_id, question, question_id):
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        token_list = []
+        query = "SELECT `token_id` from `tokens` where `username` in (select `user_name` from `meeting_participant` where `meeting_id` = %s)"
+        cur.execute(query, (meeting_id))
+        tokens = cur.fetchall()
+        for t in tokens:
+            token_list.append(t['token_id'])
+        pusher_client.notify(['quickquestions'], {
+          'fcm': {
+            'registration_ids': token_list,
+            'data': {
+                "question_id": question_id,
+                "question": question
+            },
+            'notification': {
+              'title': 'Quick Question!',
+              'body': question,
+              'click_action': "mc.asu.edu.smartmeetings.TARGET_NOTIFICATION_QQ"
             }
           },
           'webhook_url': 'http://requestb.in/1f7u53z1',
