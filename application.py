@@ -229,13 +229,27 @@ def list_questions():
             data.append({'question_id':q_id, 'question':r['question'],'answers':final_answers})
         return json.dumps({"items":data})
 
-def median_location(participants):
+@route("/getlastlocation", method='GET')
+def last_location():
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        username = request.forms.get('username')
+        query = "SELECT `latitude`, `longitude` from `location_history` where `username` = %s ORDER BY `id` DESC"
+        cur.execute(query, (username))
+        result = cur.fetchone()
+        data = [{'latitude':result['latitude'], 'longitude':result['longitude']}]
+        return json.dumps({"items":data})
+
+
+@route("/getlocations", method='GET')
+def median_location():
+    data = []
+    participants = request.query.get('participants').split(",")
     median_locations = {}
     latsum = 0
     longsum = 0
     total = len(participants)
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
-        query = "SELECT `latitude`, `longitude` from `temp_locations` where `username` = %s"
+        query = "SELECT `latitude`, `longitude` from `location_history` where `username` = %s"
         for p in participants:
             cur.execute(query, (p))
             latlong = cur.fetchall()
@@ -245,10 +259,12 @@ def median_location(participants):
             locations_to_count = (location for location in locations)
             c = Counter(locations_to_count)
             median_locations[p] = c.most_common(1)[0][0]
+        print median_locations
         for m in median_locations.values():
             latsum = latsum + float(m.split(", ")[0])
             longsum = longsum + float(m.split(", ")[1])
-        print find_optimal_location(latsum/total, longsum/total)
+        data.append({'location_list':find_optimal_location(latsum/total, longsum/total)})
+        return json.dumps({"items":data})
 
 
 def find_optimal_location(latitude, longitude):
