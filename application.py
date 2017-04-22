@@ -358,7 +358,7 @@ def notify_participants(meeting_id, question, poll_id, options):
               'click_action': "mc.asu.edu.smartmeetings.TARGET_NOTIFICATION"
             }
           },
-          'webhook_url': 'http://requestb.in/1f7u53z1',
+          'webhook_url': 'http://requestb.in/1fmf0o11',
           'webhook_level': 'DEBUG'
         })
 
@@ -383,7 +383,7 @@ def notify_questions(meeting_id, question, question_id):
               'click_action': "mc.asu.edu.smartmeetings.TARGET_NOTIFICATION_QQ"
             }
           },
-          'webhook_url': 'http://requestb.in/1f7u53z1',
+          'webhook_url': 'http://requestb.in/1fmf0o11',
           'webhook_level': 'DEBUG'
         })
 
