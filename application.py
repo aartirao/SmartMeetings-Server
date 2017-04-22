@@ -65,7 +65,7 @@ def get_rooms():
 def get_all_meetings():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         username = request.query.get('username')
-        meetings = "SELECT `location`.`name` as `location_name`, `location`.`latitude`, `location`.`longitude`,  `m`.`id`, `m`.`name`, `m`.`creator`, `room`.`from_date`, `room`.`to_date` from `meeting` `m` join `room_booking` `room` join `meeting_locations` `location` on `m`.`id` = `room`.`meeting_id` and `m`.`location_id` = `location`.`id` where `m`.`id` = (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
+        meetings = "SELECT `location`.`name` as `location_name`, `location`.`latitude`, `location`.`longitude`,  `m`.`id`, `m`.`name`, `m`.`creator`, `room`.`from_date`, `room`.`to_date` from `meeting` `m` join `room_booking` `room` join `meeting_locations` `location` on `m`.`id` = `room`.`meeting_id` and `m`.`location_id` = `location`.`id` where `m`.`id` in (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
         cur.execute(meetings, (username))
         result = cur.fetchall()
         conn.commit()
@@ -256,6 +256,8 @@ def check_clash():
         print from_date
         from_date = parser.parse(from_date)
         to_date = request.query.get('to_date')
+        # if to_date == '2017-03-05 08:40:00':
+        #     return json.dumps({"items":[{'status':'false', 'result':'clashes with a participant'}]})
         print to_date
         to_date = parser.parse(to_date)
         for p in participants:
@@ -269,8 +271,9 @@ def check_clash():
                 print user_from_date
                 user_to_date = meet['to_date']
                 print user_to_date
-                if (user_from_date < from_date and user_to_date > to_date) or (user_from_date > from_date and user_to_date < to_date) or (user_from_date < from_date and user_to_date > from_date) or (user_from_date > from_date and user_from_date < to_date and user_to_date > to_date) :
-                    return json.dumps({"items":[{'status':'false', 'result':'clashes with a participant'}]})
+                if (user_from_date <= from_date and user_to_date >= to_date) or (user_from_date >= from_date and user_to_date <= to_date) or (user_from_date <= from_date and user_to_date >= from_date) or (user_from_date >= from_date and user_from_date <= to_date and user_to_date >= to_date) :
+                    string = 'clashes with participant',p
+                    return json.dumps({"items":[{'status':'false', 'result':string}]})
         return json.dumps({"items":[{'status':'true', 'location_list':median_location(participants)}]})
 
 @route("/getlocations", method='GET')
