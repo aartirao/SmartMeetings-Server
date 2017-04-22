@@ -170,7 +170,7 @@ def create_token():
         token_id = request.forms.get('token_id')
         username = request.forms.get('username')
         insert = "INSERT IGNORE INTO `tokens` (`token_id`, `username`) values(%s, %s)"
-        cur.execute(insert, (token_id, username, username))
+        cur.execute(insert, (token_id, username))
         conn.commit()
 
 @route("/submitpoll", method='POST')
@@ -272,7 +272,7 @@ def check_clash():
                 user_to_date = meet['to_date']
                 print user_to_date
                 if (user_from_date <= from_date and user_to_date >= to_date) or (user_from_date >= from_date and user_to_date <= to_date) or (user_from_date <= from_date and user_to_date >= from_date) or (user_from_date >= from_date and user_from_date <= to_date and user_to_date >= to_date) :
-                    string = 'clashes with participant',p
+                    string = 'clashes with participant ', str(p)
                     return json.dumps({"items":[{'status':'false', 'result':string}]})
         return json.dumps({"items":[{'status':'true', 'location_list':median_location(participants)}]})
 
