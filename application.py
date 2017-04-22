@@ -254,7 +254,9 @@ def check_clash():
         to_date = request.query.get('to_date')
         to_date = parser.parse(to_date)
         for p in participants:
-            meeting_times = "SELECT `from_date`, `to_date` from `room_booking` where `meeting_id` = (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
+            p = p.strip()
+            print p
+            meeting_times = "SELECT `from_date`, `to_date` from `room_booking` where `meeting_id` = (select `meeting_id` from `meeting_participant` where `user_name` = %s LIMIT 1)"
             cur.execute(meeting_times, (p))
             user_meeting = cur.fetchall()
             for meet in user_meeting:
