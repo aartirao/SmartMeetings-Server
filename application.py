@@ -250,8 +250,10 @@ def check_clash():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         participants = request.query.get('participants').split(",")
         from_date = request.query.get('from_date')
+        print from_date
         from_date = parser.parse(from_date)
         to_date = request.query.get('to_date')
+        print to_date
         to_date = parser.parse(to_date)
         for p in participants:
             p = p.strip()
@@ -279,6 +281,7 @@ def median_location(participants):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = "SELECT `latitude`, `longitude` from `location_history` where `username` = %s"
         for p in participants:
+            p = p.strip()
             cur.execute(query, (p))
             latlong = cur.fetchall()
             locations = []
