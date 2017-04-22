@@ -6,6 +6,7 @@ import json
 import time
 import datetime
 import operator
+from dateutil import parser
 
 import pusher
 pusher_client = pusher.Pusher("329265", "bdf3e36a58647e366f38", "a631bb96bd8a4b3c0e69")
@@ -64,7 +65,7 @@ def get_rooms():
 def get_meetings():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         username = request.query.get('username')
-        meetings = "SELECT `id`, `name`, `creator` from meeting where `id` in (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
+        meetings = "SELECT `location.name` as `location_name`, `location.latitude`, `location.longitude`,  `m.id`, `m.name`, `m.creator`, `room.from_date`, `room.to_date` from `meeting` `m` join `room_booking` `room` join `meeting_locations` `location` on `m.id` = `room.meeting_id` and `m.location_id` = `location.id` where `m.id` = (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
         cur.execute(meetings, (username))
         result = cur.fetchall()
         conn.commit()
@@ -89,6 +90,7 @@ def create_meeting():
         location_id = request.forms.get('location_id')
         from_date = request.forms.get('from_date')
         to_date = request.forms.get('to_date')
+        participants = request.forms.get('participants')
         print name, creator, location_id, from_date, to_date
         meeting = "INSERT INTO `meeting` (`name`, `creator`, `location_id`) values (%s, %s, %s)"
         cur.execute(meeting, (name, creator, location_id))
@@ -97,6 +99,8 @@ def create_meeting():
         cur.execute(book, (meeting_id, from_date, to_date))
         participant = "INSERT INTO `meeting_participant` values(%s, %s)"
         cur.execute(participant, (meeting_id, creator))
+        for p in participants:
+            cur.execute(participant, (meeting_id, p))
         conn.commit()
 
 @route('/participants', method='POST')
@@ -241,9 +245,29 @@ def last_location():
         data = [{'latitude':result['latitude'], 'longitude':result['longitude']}]
         return json.dumps({"items":data})
 
+@route("/checkclash", method='GET')
+def check_clash():
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        participants = request.query.get('participants').split(",")
+        from_date = request.query.get('from_date')
+        from_date = parser.parse(from_date)
+        to_date = request.query.get('to_date')
+        to_date = parser.parse(to_date)
+        for p in participants:
+            meeting_times = "SELECT `from_date`, `to_date` from `room_booking` where `meeting_id` = (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
+            cur.execute(meeting_times, (p))
+            user_meeting = cur.fetchall()
+            for meet in user_meeting:
+                user_from_date = meet['from_date']
+                print user_from_date
+                user_to_date = meet['to_date']
+                print user_to_date
+                if (user_from_date < from_date and user_to_date > to_date) or (user_from_date > from_date and user_to_date < to_date) or (user_from_date < from_date and user_to_date > from_date) or (user_from_date > from_date and user_from_date < to_date and user_to_date > to_date) :
+                    return json.dumps({"items":[{'status':False, 'result':'clashes with a participant'}]})
+        return json.dumps({"items":[{'status':True, 'location_list':median_location(participants)}]})
 
 @route("/getlocations", method='GET')
-def median_location():
+def median_location(participants):
     data = []
     participants = request.query.get('participants').split(",")
     median_locations = {}
@@ -260,13 +284,15 @@ def median_location():
                 locations.append(', '.join([str(ll["latitude"]), str(ll["longitude"])]))
             locations_to_count = (location for location in locations)
             c = Counter(locations_to_count)
+            print "C", c
             median_locations[p] = c.most_common(1)[0][0]
         print median_locations
         for m in median_locations.values():
             latsum = latsum + float(m.split(", ")[0])
             longsum = longsum + float(m.split(", ")[1])
-        data.append({'location_list':find_optimal_location(latsum/total, longsum/total)})
-        return json.dumps({"items":data})
+        #data.append({'location_list':find_optimal_location(latsum/total, longsum/total)})
+        #return json.dumps({"items":data})
+        return find_optimal_location(latsum/total, longsum/total)
 
 
 def find_optimal_location(latitude, longitude):
