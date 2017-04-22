@@ -263,8 +263,8 @@ def check_clash():
                 user_to_date = meet['to_date']
                 print user_to_date
                 if (user_from_date < from_date and user_to_date > to_date) or (user_from_date > from_date and user_to_date < to_date) or (user_from_date < from_date and user_to_date > from_date) or (user_from_date > from_date and user_from_date < to_date and user_to_date > to_date) :
-                    return json.dumps({"items":[{'status':False, 'result':'clashes with a participant'}]})
-        return json.dumps({"items":[{'status':True, 'location_list':median_location(participants)}]})
+                    return json.dumps({"items":[{'status':'false', 'result':'clashes with a participant'}]})
+        return json.dumps({"items":[{'status':'true', 'location_list':median_location(participants)}]})
 
 @route("/getlocations", method='GET')
 def median_location(participants):
