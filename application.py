@@ -99,7 +99,7 @@ def create_meeting():
         cur.execute(book, (meeting_id, from_date, to_date))
         participant = "INSERT INTO `meeting_participant` values(%s, %s)"
         cur.execute(participant, (meeting_id, creator))
-        for p in participants:
+        for p in participants.split(', '):
             cur.execute(participant, (meeting_id, p))
         conn.commit()
 
