@@ -1,4 +1,5 @@
 from bottle import route, run, request
+from bson import json_util
 from math import radians, cos, sin, asin, sqrt
 from collections import Counter
 import bottle
@@ -62,14 +63,17 @@ def get_rooms():
         return json.dumps({"items":result})
 
 @route('/meetings', method='GET')
-def get_meetings():
+def get_all_meetings():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         username = request.query.get('username')
-        meetings = "SELECT `location.name` as `location_name`, `location.latitude`, `location.longitude`,  `m.id`, `m.name`, `m.creator`, `room.from_date`, `room.to_date` from `meeting` `m` join `room_booking` `room` join `meeting_locations` `location` on `m.id` = `room.meeting_id` and `m.location_id` = `location.id` where `m.id` = (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
+        meetings = "SELECT `location`.`name` as `location_name`, `location`.`latitude`, `location`.`longitude`,  `m`.`id`, `m`.`name`, `m`.`creator`, `room`.`from_date`, `room`.`to_date` from `meeting` `m` join `room_booking` `room` join `meeting_locations` `location` on `m`.`id` = `room`.`meeting_id` and `m`.`location_id` = `location`.`id` where `m`.`id` = (select `meeting_id` from `meeting_participant` where `user_name` = %s)"
         cur.execute(meetings, (username))
         result = cur.fetchall()
         conn.commit()
-        return json.dumps({"items":result})
+        return json.dumps({"items":result}, default=date_handler)
+
+def date_handler(obj):
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
 
 @route('/meeting', method='GET')
 def get_meetings():
